@@ -1,0 +1,4 @@
+{"type":"session.start","timestamp":"2025-03-15T11:00:00.000Z","data":{"workspace":"/home/user/projects/webapp","branch":"feature/auth"}}
+{"type":"user.message","timestamp":"2025-03-15T11:00:10.000Z","data":{"content":"How do I add authentication?"}}
+{"type":"assistant.turn_start","timestamp":"2025-03-15T11:00:15.000Z","data":{"content":"You can use passport.js for authentication."}}
+not valid json {{{

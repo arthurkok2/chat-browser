@@ -1,0 +1,8 @@
+node_modules/
+dist/
+lib/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+session_debug.json

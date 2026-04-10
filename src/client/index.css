@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-900 text-slate-100 antialiased;
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+/* Chat bubble styles */
+.bubble-user {
+  @apply bg-slate-700 rounded-2xl rounded-bl-sm;
+}
+
+.bubble-assistant {
+  @apply bg-slate-800 border-l-2 border-violet-500 rounded-2xl rounded-tl-sm;
+}
+
+.bubble-system {
+  @apply bg-slate-800/50 border border-slate-600 rounded-xl italic;
+}
+
+/* Search highlight */
+mark {
+  @apply bg-yellow-400/30 text-yellow-200 rounded-sm px-0.5;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-slate-800;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-600 rounded;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-500;
+}
+
+/* Message content whitespace */
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -1,0 +1,5 @@
+{"type":"summary","sessionId":"claude-test-001","cwd":"/home/user/projects/myapp","version":"1.2.3"}
+{"type":"human","message":{"id":"msg-001","role":"user","content":[{"type":"text","text":"Show me the contents of package.json"}]},"parentMessageId":null,"timestamp":"2025-03-15T10:00:00.000Z"}
+{"type":"assistant","message":{"id":"msg-002","role":"assistant","content":[{"type":"text","text":"I'll read the file for you."},{"type":"tool_use","id":"tu-001","name":"Read","input":{"file_path":"/home/user/projects/myapp/package.json"}}]},"parentMessageId":"msg-001","timestamp":"2025-03-15T10:00:05.000Z"}
+{"type":"tool_result","message":{"id":"msg-003","role":"user","content":[{"type":"tool_result","tool_use_id":"tu-001","content":"{\"name\": \"myapp\", \"version\": \"1.0.0\"}"}]},"parentMessageId":"msg-002","timestamp":"2025-03-15T10:00:06.000Z"}
+THIS IS NOT VALID JSON - malformed line
