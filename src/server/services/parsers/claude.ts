@@ -4,12 +4,19 @@ import type { ParsedSession, ParsedMessage, ParsedToolUse } from "../../types.js
 
 interface ClaudeContentBlock {
   type: string;
+  // text blocks
   text?: string;
+  // thinking blocks
+  thinking?: string;
+  // tool_use blocks
   id?: string;
   name?: string;
   input?: Record<string, unknown>;
+  // tool_result blocks
   tool_use_id?: string;
-  content?: string;
+  content?: string | ClaudeContentBlock[];
+  // tool_reference blocks (inside tool_result content arrays)
+  tool_name?: string;
 }
 
 interface ClaudeLine {
@@ -111,21 +118,41 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
       type = "text";
     }
 
-    // Extract text content
+    // Extract content
     const textParts: string[] = [];
+    const thinkingParts: string[] = [];
     const toolUses: ParsedToolUse[] = [];
 
     for (const block of contentBlocks) {
       if (block.type === "text" && block.text) {
         textParts.push(block.text);
+      } else if (block.type === "thinking" && block.thinking) {
+        thinkingParts.push(block.thinking);
       } else if (block.type === "tool_use") {
         toolUses.push({
           tool_name: block.name || "unknown",
-          file_path: (block.input?.file_path as string) || null,
+          file_path:
+            (block.input?.file_path as string) ||
+            (block.input?.path as string) ||
+            null,
           timestamp,
         });
-      } else if (block.type === "tool_result" && typeof block.content === "string") {
-        textParts.push(block.content);
+      } else if (block.type === "tool_result") {
+        if (typeof block.content === "string") {
+          textParts.push(block.content);
+        } else if (Array.isArray(block.content)) {
+          const toolRefs: string[] = [];
+          for (const inner of block.content) {
+            if (inner.type === "text" && typeof inner.text === "string") {
+              textParts.push(inner.text);
+            } else if (inner.type === "tool_reference" && inner.tool_name) {
+              toolRefs.push(inner.tool_name as string);
+            }
+          }
+          if (toolRefs.length > 0) {
+            textParts.push(`[Tool dispatched: ${toolRefs.join(", ")}]`);
+          }
+        }
       }
     }
 
@@ -134,9 +161,20 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
       textParts.push(msg.content);
     }
 
-    const content = textParts.length > 0 ? textParts.join("\n") : null;
+    // Determine final content and type:
+    // - prefer visible text over thinking-only content
+    // - if only thinking, surface it so bubbles aren't blank (type="thinking")
+    let content: string | null;
+    if (textParts.length > 0) {
+      content = textParts.join("\n");
+    } else if (thinkingParts.length > 0) {
+      content = thinkingParts.join("\n");
+      if (toolUses.length === 0) type = "thinking";
+    } else {
+      content = null;
+    }
 
-    // If there are tool_use blocks in an assistant message, mark as tool_use type
+    // Mark as tool_use when assistant has tool calls (and not already typing/thinking-only)
     if (role === "assistant" && toolUses.length > 0 && type === "text") {
       type = "tool_use";
     }

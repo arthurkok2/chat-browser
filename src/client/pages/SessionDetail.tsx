@@ -108,11 +108,12 @@ export default function SessionDetail() {
       {/* Messages */}
       <div className="space-y-2">
         {messages
-          .filter((m) => m.type === "text")
+          .filter((m) => m.content !== null || (toolUsesByMessage.get(m.id)?.length ?? 0) > 0)
           .map((msg) => (
             <MessageBubble
               key={msg.id}
               role={msg.role}
+              type={msg.type}
               content={msg.content}
               timestamp={msg.timestamp}
               toolUses={toolUsesByMessage.get(msg.id)}

@@ -20,7 +20,7 @@ export interface Message {
   parent_uuid: string | null;
   role: "user" | "assistant" | "system";
   content: string | null;
-  type: "text" | "tool_use" | "tool_result";
+  type: "text" | "tool_use" | "tool_result" | "thinking";
   timestamp: number | null;
   token_estimate: number | null;
 }
@@ -56,6 +56,8 @@ export interface ParsedMessage {
   timestamp: number | null;
   tool_uses: ParsedToolUse[];
 }
+
+export type MessageType = Message["type"];
 
 export interface ParsedToolUse {
   tool_name: string;
