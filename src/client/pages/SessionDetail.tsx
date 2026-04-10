@@ -1,15 +1,86 @@
 import { useParams, Link } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSession } from "../hooks/useSessions";
 import ToolBadge from "../components/ToolBadge";
 import MessageBubble from "../components/MessageBubble";
 import { formatTimestamp, formatRelativeTime } from "../utils/time";
 
+type MessageType = "text" | "tool_use" | "tool_result" | "thinking";
+
+interface Message {
+  id: number;
+  role: "user" | "assistant" | "system";
+  type: MessageType;
+  content: string | null;
+  timestamp: number | null;
+}
+
+type RenderItem =
+  | { kind: "message"; msg: Message }
+  | { kind: "group"; messages: Message[]; counts: Record<string, number> };
+
+const TYPE_STYLES: Record<string, string> = {
+  tool_use:    "bg-violet-900/50 text-violet-300 border-violet-700/50",
+  tool_result: "bg-emerald-900/40 text-emerald-300 border-emerald-700/50",
+  thinking:    "bg-amber-900/30 text-amber-300 border-amber-700/50",
+};
+
+function GroupSummary({ item, toolUsesByMessage }: {
+  item: Extract<RenderItem, { kind: "group" }>;
+  toolUsesByMessage: Map<number, unknown[]>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const parts = Object.entries(item.counts).map(([type, count]) => ({ type, count }));
+
+  return (
+    <div className="my-1">
+      {/* Summary bar */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 transition-colors w-full text-left"
+      >
+        <svg
+          className={`w-3 h-3 text-slate-500 transition-transform shrink-0 ${expanded ? "rotate-90" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {parts.map(({ type, count }) => (
+            <span
+              key={type}
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border ${TYPE_STYLES[type] ?? "bg-slate-700 text-slate-300 border-slate-600"}`}
+            >
+              {count}× {type}
+            </span>
+          ))}
+        </div>
+      </button>
+
+      {/* Expanded individual messages */}
+      {expanded && (
+        <div className="mt-1 pl-4 space-y-1 border-l-2 border-slate-700">
+          {item.messages.map((msg) => (
+            <MessageBubble
+              key={msg.id}
+              role={msg.role}
+              type={msg.type}
+              content={msg.content}
+              timestamp={msg.timestamp}
+              toolUses={(toolUsesByMessage.get(msg.id) as Parameters<typeof MessageBubble>[0]["toolUses"])}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SessionDetail() {
   const { id } = useParams<{ id: string }>();
   const { session, messages, tool_uses, loading } = useSession(id);
 
-  // Group tool_uses by message_id
   const toolUsesByMessage = useMemo(() => {
     const map = new Map<number, typeof tool_uses>();
     tool_uses.forEach((tu) => {
@@ -19,6 +90,36 @@ export default function SessionDetail() {
     });
     return map;
   }, [tool_uses]);
+
+  // Group consecutive non-text messages between text messages
+  const renderItems = useMemo((): RenderItem[] => {
+    const visible = messages.filter(
+      (m) => m.content !== null || (toolUsesByMessage.get(m.id)?.length ?? 0) > 0
+    ) as Message[];
+
+    const items: RenderItem[] = [];
+    let groupBuf: Message[] = [];
+
+    const flushGroup = () => {
+      if (groupBuf.length === 0) return;
+      const counts: Record<string, number> = {};
+      for (const m of groupBuf) counts[m.type] = (counts[m.type] ?? 0) + 1;
+      items.push({ kind: "group", messages: groupBuf, counts });
+      groupBuf = [];
+    };
+
+    for (const msg of visible) {
+      if (msg.type === "text") {
+        flushGroup();
+        items.push({ kind: "message", msg });
+      } else {
+        groupBuf.push(msg);
+      }
+    }
+    flushGroup();
+
+    return items;
+  }, [messages, toolUsesByMessage]);
 
   const handleExport = (format: "md" | "json") => {
     window.open(`/api/export?session_id=${id}&format=${format}&type=sessions`, "_blank");
@@ -107,18 +208,20 @@ export default function SessionDetail() {
 
       {/* Messages */}
       <div className="space-y-2">
-        {messages
-          .filter((m) => m.content !== null || (toolUsesByMessage.get(m.id)?.length ?? 0) > 0)
-          .map((msg) => (
+        {renderItems.map((item, i) =>
+          item.kind === "message" ? (
             <MessageBubble
-              key={msg.id}
-              role={msg.role}
-              type={msg.type}
-              content={msg.content}
-              timestamp={msg.timestamp}
-              toolUses={toolUsesByMessage.get(msg.id)}
+              key={item.msg.id}
+              role={item.msg.role}
+              type={item.msg.type}
+              content={item.msg.content}
+              timestamp={item.msg.timestamp}
+              toolUses={toolUsesByMessage.get(item.msg.id)}
             />
-          ))}
+          ) : (
+            <GroupSummary key={i} item={item} toolUsesByMessage={toolUsesByMessage} />
+          )
+        )}
       </div>
 
       {messages.length === 0 && (
