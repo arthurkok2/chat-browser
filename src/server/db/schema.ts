@@ -13,7 +13,8 @@ export function createSchema(db: DatabaseSync): void {
       message_count INTEGER DEFAULT 0,
       source_file TEXT NOT NULL,
       file_mtime INTEGER,
-      file_size INTEGER
+      file_size INTEGER,
+      parser_version INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -69,6 +70,12 @@ export function createSchema(db: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_tool_uses_session ON tool_uses(session_id);
     CREATE INDEX IF NOT EXISTS idx_tool_uses_tool ON tool_uses(tool_name);
   `);
+
+  // Migrate: add parser_version column if it doesn't exist yet
+  const cols = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "parser_version")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN parser_version INTEGER");
+  }
 }
 
 export function dropSchema(db: DatabaseSync): void {

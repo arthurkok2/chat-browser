@@ -14,6 +14,12 @@ import {
 } from "./discovery.js";
 
 /**
+ * Increment this whenever a parser changes significantly so existing indexed
+ * sessions are automatically re-parsed even if the source file hasn't changed.
+ */
+const PARSER_VERSION = 2;
+
+/**
  * Check whether a session file has changed since last index.
  */
 function isStale(
@@ -24,11 +30,12 @@ function isStale(
 ): boolean {
   const row = db
     .prepare(
-      "SELECT file_mtime, file_size FROM sessions WHERE source_file = ? LIMIT 1"
+      "SELECT file_mtime, file_size, parser_version FROM sessions WHERE source_file = ? LIMIT 1"
     )
-    .get(sourceFile) as { file_mtime: number | null; file_size: number | null } | undefined;
+    .get(sourceFile) as { file_mtime: number | null; file_size: number | null; parser_version: number | null } | undefined;
 
   if (!row) return true;
+  if (row.parser_version !== PARSER_VERSION) return true;
   return row.file_mtime !== mtime || row.file_size !== size;
 }
 
@@ -59,8 +66,8 @@ export function indexSession(
 
     // Insert session row
     db.prepare(
-      `INSERT INTO sessions (id, tool, project, cwd, git_branch, started_at, ended_at, message_count, source_file, file_mtime, file_size)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO sessions (id, tool, project, cwd, git_branch, started_at, ended_at, message_count, source_file, file_mtime, file_size, parser_version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       parsed.id,
       parsed.tool,
@@ -72,7 +79,8 @@ export function indexSession(
       parsed.messages.length,
       sourceFile,
       stat?.mtime ?? null,
-      stat?.size ?? null
+      stat?.size ?? null,
+      PARSER_VERSION
     );
 
     // Prepare statements for messages and tool_uses
