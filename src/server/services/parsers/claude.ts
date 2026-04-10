@@ -19,19 +19,24 @@ interface ClaudeContentBlock {
   tool_name?: string;
 }
 
+// Every entry in the JSONL has these top-level fields.
+// Only "user" and "assistant" typed entries have a `message` field.
 interface ClaudeLine {
   type?: string;
+  // present on all meaningful entries
+  uuid?: string;
+  parentUuid?: string;
+  isSidechain?: boolean;
+  timestamp?: string;
   sessionId?: string;
   cwd?: string;
-  version?: string;
-  isSidechain?: boolean;
-  parentMessageId?: string;
+  gitBranch?: string;
+  // present only on "user" and "assistant" entries
   message?: {
-    id?: string;
+    id?: string;       // Anthropic API message ID (msg_bdrk_...), NOT the conversation uuid
     role?: string;
     content?: ClaudeContentBlock[] | string;
   };
-  timestamp?: string;
 }
 
 function toEpochMs(ts: string | undefined): number | null {
@@ -59,6 +64,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
 
   let sessionId: string | null = null;
   let cwd: string | null = null;
+  let gitBranch: string | null = null;
   let isSubagent = false;
   const messages: ParsedMessage[] = [];
 
@@ -84,41 +90,23 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
       continue;
     }
 
-    // isSidechain is on the first line (no type field) or any line
+    // sessionId, cwd, gitBranch and isSidechain are on every entry — grab on first occurrence
+    if (!sessionId && parsed.sessionId) sessionId = parsed.sessionId;
+    if (!cwd && parsed.cwd) cwd = parsed.cwd;
+    if (!gitBranch && parsed.gitBranch) gitBranch = parsed.gitBranch;
     if (parsed.isSidechain === true) isSubagent = true;
 
-    // Summary / metadata line
-    if (parsed.type === "summary") {
-      if (parsed.sessionId) sessionId = parsed.sessionId;
-      if (parsed.cwd) cwd = parsed.cwd;
-      continue;
-    }
-
+    // Only "user" and "assistant" entries carry a message
     const msg = parsed.message;
     if (!msg) continue;
+
+    const role = msg.role;
+    if (role !== "user" && role !== "assistant") continue;
 
     const contentBlocks = Array.isArray(msg.content) ? msg.content : [];
     const timestamp = toEpochMs(parsed.timestamp);
 
-    // Determine role and type
-    let role: "user" | "assistant" | "system";
-    let type: "text" | "tool_use" | "tool_result" | "thinking";
-
-    if (parsed.type === "tool_result") {
-      role = "user";
-      type = "tool_result";
-    } else if (msg.role === "assistant") {
-      role = "assistant";
-      type = "text";
-    } else if (msg.role === "user") {
-      role = "user";
-      type = "text";
-    } else {
-      role = "system";
-      type = "text";
-    }
-
-    // Extract content
+    // Extract content blocks by type
     const textParts: string[] = [];
     const thinkingParts: string[] = [];
     const toolUses: ParsedToolUse[] = [];
@@ -161,38 +149,50 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
       }
     }
 
-    // If content came exclusively from tool_result blocks, mark the message accordingly
-    if (hasToolResultBlock && !hasPlainTextBlock) {
-      type = "tool_result";
-    }
-
-    // If content is a plain string (fallback)
-    if (typeof msg.content === "string") {
+    // Fallback: message.content is a plain string (user messages sometimes are)
+    if (typeof msg.content === "string" && msg.content) {
       textParts.push(msg.content);
+      hasPlainTextBlock = true;
     }
 
-    // Determine final content and type:
-    // - prefer visible text over thinking-only content
-    // - if only thinking, surface it so bubbles aren't blank (type="thinking")
+    // Determine message type
+    let type: "text" | "tool_use" | "tool_result" | "thinking";
+    if (hasToolResultBlock && !hasPlainTextBlock) {
+      // Content came exclusively from tool_result blocks
+      type = "tool_result";
+    } else if (role === "assistant" && toolUses.length > 0 && textParts.length === 0 && thinkingParts.length === 0) {
+      // Pure tool dispatch with no accompanying text or thinking
+      type = "tool_use";
+    } else if (role === "assistant" && toolUses.length > 0) {
+      // Tool dispatch that also has text or thinking content
+      type = "tool_use";
+    } else if (thinkingParts.length > 0 && textParts.length === 0 && toolUses.length === 0) {
+      // Pure thinking, no visible output
+      type = "thinking";
+    } else {
+      type = "text";
+    }
+
+    // Determine content to store:
+    // - For tool_result / text / tool_use: use extracted text
+    // - For thinking-only: surface the thinking so the bubble isn't blank
     let content: string | null;
     if (textParts.length > 0) {
       content = textParts.join("\n");
     } else if (thinkingParts.length > 0) {
       content = thinkingParts.join("\n");
-      if (toolUses.length === 0) type = "thinking";
     } else {
       content = null;
     }
 
-    // Mark as tool_use when assistant has tool calls (and not already typing/thinking-only)
-    if (role === "assistant" && toolUses.length > 0 && type === "text") {
-      type = "tool_use";
-    }
+    // Skip completely empty entries (no content, no tool calls)
+    if (!content && toolUses.length === 0) continue;
 
     messages.push({
-      uuid: msg.id || null,
-      parent_uuid: parsed.parentMessageId || null,
-      role,
+      // uuid is the conversation entry UUID (parsed.uuid), NOT msg.id (which is the API message ID)
+      uuid: parsed.uuid || null,
+      parent_uuid: parsed.parentUuid || null,
+      role: role as "user" | "assistant",
       content,
       type,
       timestamp,
@@ -202,19 +202,17 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
 
   if (messages.length === 0) return null;
 
-  // Derive sessionId from filename if not found in summary
+  // Fallback: derive sessionId from filename if not found in entries
   if (!sessionId) {
     sessionId = path.basename(filePath, path.extname(filePath));
   }
 
-  // Compute started_at / ended_at from message timestamps
   const timestamps = messages
     .map((m) => m.timestamp)
     .filter((t): t is number => t !== null);
   const startedAt = timestamps.length > 0 ? Math.min(...timestamps) : null;
   const endedAt = timestamps.length > 0 ? Math.max(...timestamps) : null;
 
-  // Estimate tokens on messages
   for (const m of messages) {
     (m as ParsedMessage & { token_estimate?: number | null }).token_estimate =
       estimateTokens(m.content);
@@ -225,7 +223,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
     tool: "claude",
     project,
     cwd,
-    git_branch: null,
+    git_branch: gitBranch,
     started_at: startedAt,
     ended_at: endedAt,
     source_file: filePath,

@@ -17,7 +17,7 @@ import {
  * Increment this whenever a parser changes significantly so existing indexed
  * sessions are automatically re-parsed even if the source file hasn't changed.
  */
-const PARSER_VERSION = 5;
+const PARSER_VERSION = 6;
 
 /**
  * Check whether a session file has changed since last index.
