@@ -102,7 +102,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
 
     // Determine role and type
     let role: "user" | "assistant" | "system";
-    let type: "text" | "tool_use" | "tool_result";
+    let type: "text" | "tool_use" | "tool_result" | "thinking";
 
     if (parsed.type === "tool_result") {
       role = "user";
@@ -122,10 +122,13 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
     const textParts: string[] = [];
     const thinkingParts: string[] = [];
     const toolUses: ParsedToolUse[] = [];
+    let hasToolResultBlock = false;
+    let hasPlainTextBlock = false;
 
     for (const block of contentBlocks) {
       if (block.type === "text" && block.text) {
         textParts.push(block.text);
+        hasPlainTextBlock = true;
       } else if (block.type === "thinking" && block.thinking) {
         thinkingParts.push(block.thinking);
       } else if (block.type === "tool_use") {
@@ -139,6 +142,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
           input_json: block.input ? JSON.stringify(block.input) : null,
         });
       } else if (block.type === "tool_result") {
+        hasToolResultBlock = true;
         if (typeof block.content === "string") {
           textParts.push(block.content);
         } else if (Array.isArray(block.content)) {
@@ -155,6 +159,11 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
           }
         }
       }
+    }
+
+    // If content came exclusively from tool_result blocks, mark the message accordingly
+    if (hasToolResultBlock && !hasPlainTextBlock) {
+      type = "tool_result";
     }
 
     // If content is a plain string (fallback)
