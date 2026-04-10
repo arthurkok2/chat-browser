@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { formatTimestamp } from "../utils/time";
 import ToolCallItem from "./ToolCallItem";
 
@@ -32,6 +33,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function MessageBubble({ role, type = "text", content, timestamp, toolUses }: MessageBubbleProps) {
+  const collapsible = type !== "text";
+  const [expanded, setExpanded] = useState(false);
+
   const isThinking = type === "thinking";
   const typeStyle = TYPE_STYLES[type] ?? TYPE_STYLES.text;
 
@@ -46,34 +50,50 @@ export default function MessageBubble({ role, type = "text", content, timestamp,
 
   return (
     <div className={`max-w-[85%] ${alignClass} mb-4`}>
-      <div className="flex items-center gap-2 mb-1">
+      {/* Header row */}
+      <div
+        className={`flex items-center gap-2 mb-1 ${collapsible ? "cursor-pointer select-none" : ""}`}
+        onClick={collapsible ? () => setExpanded((v) => !v) : undefined}
+      >
         <span className="text-xs font-medium text-slate-400 capitalize">{role}</span>
-        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border ${typeStyle}`}>
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${typeStyle}`}>
+          {collapsible && (
+            <svg
+              className={`w-2.5 h-2.5 transition-transform ${expanded ? "rotate-90" : ""}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          )}
           {TYPE_LABELS[type]}
         </span>
         {timestamp && (
           <span className="text-xs text-slate-500">{formatTimestamp(timestamp)}</span>
         )}
       </div>
-      <div className={`${bubbleClass} px-4 py-3 ${isThinking ? "opacity-60 border border-dashed border-slate-600" : ""}`}>
-        {content && (
-          <div className={`message-content text-sm ${isThinking ? "text-slate-400 italic" : "text-slate-200"}`}>
-            {content}
-          </div>
-        )}
-        {toolUses && toolUses.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {toolUses.map((tu) => (
-              <ToolCallItem
-                key={tu.id}
-                toolName={tu.tool_name}
-                filePath={tu.file_path}
-                inputJson={tu.input_json}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+
+      {/* Body — always shown for text, toggle for everything else */}
+      {(!collapsible || expanded) && (
+        <div className={`${bubbleClass} px-4 py-3 ${isThinking ? "opacity-60 border border-dashed border-slate-600" : ""}`}>
+          {content && (
+            <div className={`message-content text-sm ${isThinking ? "text-slate-400 italic" : "text-slate-200"}`}>
+              {content}
+            </div>
+          )}
+          {toolUses && toolUses.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {toolUses.map((tu) => (
+                <ToolCallItem
+                  key={tu.id}
+                  toolName={tu.tool_name}
+                  filePath={tu.file_path}
+                  inputJson={tu.input_json}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
