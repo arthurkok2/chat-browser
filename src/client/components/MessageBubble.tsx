@@ -6,6 +6,7 @@ interface ToolUse {
   message_id: number;
   tool_name: string;
   file_path: string | null;
+  input_json: string | null;
 }
 
 interface MessageBubbleProps {
@@ -46,9 +47,14 @@ export default function MessageBubble({ role, type, content, timestamp, toolUses
           </div>
         )}
         {toolUses && toolUses.length > 0 && (
-          <div className="mt-2 space-y-1">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {toolUses.map((tu) => (
-              <ToolCallItem key={tu.id} toolName={tu.tool_name} filePath={tu.file_path} />
+              <ToolCallItem
+                key={tu.id}
+                toolName={tu.tool_name}
+                filePath={tu.file_path}
+                inputJson={tu.input_json}
+              />
             ))}
           </div>
         )}

@@ -72,6 +72,7 @@ function extractToolUses(
         tool_name: b.name || "unknown",
         file_path: filePath,
         timestamp,
+        input_json: b.input ? JSON.stringify(b.input) : null,
       };
     });
 }

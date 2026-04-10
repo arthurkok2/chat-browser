@@ -136,6 +136,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
             (block.input?.path as string) ||
             null,
           timestamp,
+          input_json: block.input ? JSON.stringify(block.input) : null,
         });
       } else if (block.type === "tool_result") {
         if (typeof block.content === "string") {

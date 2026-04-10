@@ -32,6 +32,7 @@ export interface ToolUse {
   tool_name: string;
   file_path: string | null;
   timestamp: number | null;
+  input_json: string | null;
 }
 
 export interface ParsedSession {
@@ -63,6 +64,7 @@ export interface ParsedToolUse {
   tool_name: string;
   file_path: string | null;
   timestamp: number | null;
+  input_json: string | null;
 }
 
 export interface SearchResult {

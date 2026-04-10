@@ -17,7 +17,7 @@ import {
  * Increment this whenever a parser changes significantly so existing indexed
  * sessions are automatically re-parsed even if the source file hasn't changed.
  */
-const PARSER_VERSION = 3;
+const PARSER_VERSION = 4;
 
 /**
  * Check whether a session file has changed since last index.
@@ -90,8 +90,8 @@ export function indexSession(
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     );
     const insertTool = db.prepare(
-      `INSERT INTO tool_uses (message_id, session_id, tool_name, file_path, timestamp)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO tool_uses (message_id, session_id, tool_name, file_path, timestamp, input_json)
+       VALUES (?, ?, ?, ?, ?, ?)`
     );
 
     for (const msg of parsed.messages) {
@@ -118,7 +118,8 @@ export function indexSession(
           parsed.id,
           tu.tool_name,
           tu.file_path,
-          tu.timestamp
+          tu.timestamp,
+          tu.input_json
         );
       }
     }

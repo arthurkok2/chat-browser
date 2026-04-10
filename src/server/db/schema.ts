@@ -65,7 +65,8 @@ export function createSchema(db: DatabaseSync): void {
       session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
       tool_name TEXT NOT NULL,
       file_path TEXT,
-      timestamp INTEGER
+      timestamp INTEGER,
+      input_json TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_tool_uses_session ON tool_uses(session_id);
@@ -80,6 +81,10 @@ export function createSchema(db: DatabaseSync): void {
   }
   if (!colNames.has("is_subagent")) {
     db.exec("ALTER TABLE sessions ADD COLUMN is_subagent INTEGER NOT NULL DEFAULT 0");
+  }
+  const toolCols = db.prepare("PRAGMA table_info(tool_uses)").all() as { name: string }[];
+  if (!toolCols.some((c) => c.name === "input_json")) {
+    db.exec("ALTER TABLE tool_uses ADD COLUMN input_json TEXT");
   }
 }
 

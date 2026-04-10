@@ -120,6 +120,7 @@ export function parseCopilotSession(dirPath: string): ParsedSession | null {
             ? tr.arguments.path
             : null,
         timestamp,
+        input_json: tr.arguments ? JSON.stringify(tr.arguments) : null,
       }));
 
       // Only push if there's content or tool uses
