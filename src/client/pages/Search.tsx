@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
 import FilterBar from "../components/FilterBar";
 import SessionCard from "../components/SessionCard";
@@ -6,110 +7,103 @@ import { useSearch } from "../hooks/useSearch";
 import { useSessions } from "../hooks/useSessions";
 
 export default function Search() {
-  const [query, setQuery] = useState("");
-  const [tool, setTool] = useState("");
-  const [project, setProject] = useState("");
-  const [branch, setBranch] = useState("");
-  const [after, setAfter] = useState("");
-  const [before, setBefore] = useState("");
-  const [role, setRole] = useState("");
-  const [includeSubagents, setIncludeSubagents] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const limit = 20;
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const query           = searchParams.get("q") ?? "";
+  const tool            = searchParams.get("tool") ?? "";
+  const project         = searchParams.get("project") ?? "";
+  const branch          = searchParams.get("branch") ?? "";
+  const after           = searchParams.get("after") ?? "";
+  const before          = searchParams.get("before") ?? "";
+  const role            = searchParams.get("role") ?? "";
+  const includeSubagents = searchParams.get("subagents") === "1";
+  const offset          = Number(searchParams.get("offset") ?? "0");
+  const limit           = 20;
+
+  function set(updates: Record<string, string | null>, resetOffset = true) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(updates)) {
+        if (v === null || v === "" || v === "0" || (k === "subagents" && v === "0")) {
+          next.delete(k);
+        } else {
+          next.set(k, v);
+        }
+      }
+      if (resetOffset) next.delete("offset");
+      return next;
+    }, { replace: true });
+  }
 
   const isSearching = !!query.trim();
 
-  const searchParams = useMemo(
-    () => ({
-      q: query,
-      tool,
-      project,
-      branch,
-      after,
-      before,
-      role,
-      limit,
-      offset,
-    }),
+  const searchApiParams = useMemo(
+    () => ({ q: query, tool, project, branch, after, before, role, limit, offset }),
     [query, tool, project, branch, after, before, role, offset]
   );
 
   const sessionsParams = useMemo(
     () => ({
-      tool,
-      project,
-      branch,
-      after,
-      before,
-      sort: "started_at",
-      order: "desc" as const,
-      limit,
-      offset,
+      tool, project, branch, after, before,
+      sort: "started_at", order: "desc" as const,
+      limit, offset,
       include_subagents: includeSubagents,
     }),
     [tool, project, branch, after, before, offset, includeSubagents]
   );
 
-  const search = useSearch(searchParams);
+  const search   = useSearch(searchApiParams);
   const sessions = useSessions(sessionsParams);
 
   const loading = isSearching ? search.loading : sessions.loading;
-  const total = isSearching ? search.total : sessions.total;
+  const total   = isSearching ? search.total   : sessions.total;
 
-  // Extract unique projects and branches from sessions for filter dropdowns
   const projectList = useMemo(() => {
-    const set = new Set<string>();
-    sessions.sessions.forEach((s) => {
-      if (s.project) set.add(s.project);
-    });
-    return Array.from(set).sort();
+    const s = new Set<string>();
+    sessions.sessions.forEach((sess) => { if (sess.project) s.add(sess.project); });
+    return Array.from(s).sort();
   }, [sessions.sessions]);
 
   const branchList = useMemo(() => {
-    const set = new Set<string>();
-    sessions.sessions.forEach((s) => {
-      if (s.git_branch) set.add(s.git_branch);
-    });
-    return Array.from(set).sort();
+    const s = new Set<string>();
+    sessions.sessions.forEach((sess) => { if (sess.git_branch) s.add(sess.git_branch); });
+    return Array.from(s).sort();
   }, [sessions.sessions]);
 
   const handlePageChange = (newOffset: number) => {
-    setOffset(newOffset);
+    set({ offset: newOffset === 0 ? null : String(newOffset) }, false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const totalPages = Math.ceil(total / limit);
-  const currentPage = Math.floor(offset / limit) + 1;
+  const totalPages   = Math.ceil(total / limit);
+  const currentPage  = Math.floor(offset / limit) + 1;
 
   return (
     <div className="space-y-4">
-      <SearchBar value={query} onChange={(v) => { setQuery(v); setOffset(0); }} />
+      <SearchBar value={query} onChange={(v) => set({ q: v })} />
 
       <FilterBar
         tool={tool}
-        onToolChange={(v) => { setTool(v); setOffset(0); }}
+        onToolChange={(v) => set({ tool: v })}
         project={project}
-        onProjectChange={(v) => { setProject(v); setOffset(0); }}
+        onProjectChange={(v) => set({ project: v })}
         branch={branch}
-        onBranchChange={(v) => { setBranch(v); setOffset(0); }}
+        onBranchChange={(v) => set({ branch: v })}
         after={after}
-        onAfterChange={(v) => { setAfter(v); setOffset(0); }}
+        onAfterChange={(v) => set({ after: v })}
         before={before}
-        onBeforeChange={(v) => { setBefore(v); setOffset(0); }}
+        onBeforeChange={(v) => set({ before: v })}
         role={role}
-        onRoleChange={(v) => { setRole(v); setOffset(0); }}
+        onRoleChange={(v) => set({ role: v })}
         includeSubagents={includeSubagents}
-        onIncludeSubagentsChange={(v) => { setIncludeSubagents(v); setOffset(0); }}
+        onIncludeSubagentsChange={(v) => set({ subagents: v ? "1" : null })}
         projects={projectList}
         branches={branchList}
       />
 
-      {/* Result info */}
       <div className="flex items-center justify-between text-sm text-slate-400">
         <span>
-          {loading ? (
-            "Loading..."
-          ) : (
+          {loading ? "Loading..." : (
             <>
               {total} {isSearching ? "results" : "sessions"}
               {isSearching && search.duration_ms > 0 && (
@@ -118,36 +112,25 @@ export default function Search() {
             </>
           )}
         </span>
-        {!isSearching && (
-          <span className="text-xs">Showing recent sessions</span>
-        )}
+        {!isSearching && <span className="text-xs">Showing recent sessions</span>}
       </div>
 
-      {/* Results */}
       <div className="space-y-2">
         {isSearching
           ? search.results.map((r) => (
-              <SessionCard
-                key={`${r.session.id}-${r.message_id}`}
-                session={r.session}
-                snippet={r.snippet}
-              />
+              <SessionCard key={`${r.session.id}-${r.message_id}`} session={r.session} snippet={r.snippet} />
             ))
           : sessions.sessions.map((s) => (
               <SessionCard key={s.id} session={s} />
             ))}
       </div>
 
-      {/* Empty state */}
       {!loading && total === 0 && (
         <div className="text-center py-16 text-slate-500">
-          {isSearching
-            ? "No results found. Try a different search query."
-            : "No sessions found."}
+          {isSearching ? "No results found. Try a different search query." : "No sessions found."}
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
           <button
@@ -157,9 +140,7 @@ export default function Search() {
           >
             Previous
           </button>
-          <span className="text-sm text-slate-400">
-            Page {currentPage} of {totalPages}
-          </span>
+          <span className="text-sm text-slate-400">Page {currentPage} of {totalPages}</span>
           <button
             onClick={() => handlePageChange(offset + limit)}
             disabled={currentPage >= totalPages}
