@@ -13,6 +13,7 @@ export default function Search() {
   const [after, setAfter] = useState("");
   const [before, setBefore] = useState("");
   const [role, setRole] = useState("");
+  const [includeSubagents, setIncludeSubagents] = useState(false);
   const [offset, setOffset] = useState(0);
   const limit = 20;
 
@@ -44,8 +45,9 @@ export default function Search() {
       order: "desc" as const,
       limit,
       offset,
+      include_subagents: includeSubagents,
     }),
-    [tool, project, branch, after, before, offset]
+    [tool, project, branch, after, before, offset, includeSubagents]
   );
 
   const search = useSearch(searchParams);
@@ -96,6 +98,8 @@ export default function Search() {
         onBeforeChange={(v) => { setBefore(v); setOffset(0); }}
         role={role}
         onRoleChange={(v) => { setRole(v); setOffset(0); }}
+        includeSubagents={includeSubagents}
+        onIncludeSubagentsChange={(v) => { setIncludeSubagents(v); setOffset(0); }}
         projects={projectList}
         branches={branchList}
       />

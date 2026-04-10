@@ -11,6 +11,8 @@ interface FilterBarProps {
   onBeforeChange: (value: string) => void;
   role: string;
   onRoleChange: (value: string) => void;
+  includeSubagents: boolean;
+  onIncludeSubagentsChange: (value: boolean) => void;
   projects?: string[];
   branches?: string[];
 }
@@ -79,6 +81,8 @@ export default function FilterBar({
   onBeforeChange,
   role,
   onRoleChange,
+  includeSubagents,
+  onIncludeSubagentsChange,
   projects = [],
   branches = [],
 }: FilterBarProps) {
@@ -130,7 +134,21 @@ export default function FilterBar({
         ]}
       />
 
-      {(tool || project || branch || after || before || role) && (
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-medium text-slate-400">Subagents</label>
+        <button
+          onClick={() => onIncludeSubagentsChange(!includeSubagents)}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors ${
+            includeSubagents
+              ? "bg-violet-700 border-violet-500 text-white"
+              : "bg-slate-800 border-slate-600 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <span>{includeSubagents ? "Included" : "Excluded"}</span>
+        </button>
+      </div>
+
+      {(tool || project || branch || after || before || role || includeSubagents) && (
         <button
           onClick={() => {
             onToolChange("");
@@ -139,6 +157,7 @@ export default function FilterBar({
             onAfterChange("");
             onBeforeChange("");
             onRoleChange("");
+            onIncludeSubagentsChange(false);
           }}
           className="text-xs text-slate-400 hover:text-slate-200 underline pb-1.5"
         >

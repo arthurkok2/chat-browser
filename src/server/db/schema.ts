@@ -14,7 +14,8 @@ export function createSchema(db: DatabaseSync): void {
       source_file TEXT NOT NULL,
       file_mtime INTEGER,
       file_size INTEGER,
-      parser_version INTEGER
+      parser_version INTEGER,
+      is_subagent INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -71,10 +72,14 @@ export function createSchema(db: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_tool_uses_tool ON tool_uses(tool_name);
   `);
 
-  // Migrate: add parser_version column if it doesn't exist yet
+  // Migrate: add columns if they don't exist yet (for existing DBs)
   const cols = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
-  if (!cols.some((c) => c.name === "parser_version")) {
+  const colNames = new Set(cols.map((c) => c.name));
+  if (!colNames.has("parser_version")) {
     db.exec("ALTER TABLE sessions ADD COLUMN parser_version INTEGER");
+  }
+  if (!colNames.has("is_subagent")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN is_subagent INTEGER NOT NULL DEFAULT 0");
   }
 }
 

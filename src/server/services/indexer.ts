@@ -66,8 +66,8 @@ export function indexSession(
 
     // Insert session row
     db.prepare(
-      `INSERT INTO sessions (id, tool, project, cwd, git_branch, started_at, ended_at, message_count, source_file, file_mtime, file_size, parser_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO sessions (id, tool, project, cwd, git_branch, started_at, ended_at, message_count, source_file, file_mtime, file_size, parser_version, is_subagent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       parsed.id,
       parsed.tool,
@@ -80,7 +80,8 @@ export function indexSession(
       sourceFile,
       stat?.mtime ?? null,
       stat?.size ?? null,
-      PARSER_VERSION
+      PARSER_VERSION,
+      parsed.is_subagent ? 1 : 0
     );
 
     // Prepare statements for messages and tool_uses

@@ -17,6 +17,7 @@ interface ClaudeLine {
   sessionId?: string;
   cwd?: string;
   version?: string;
+  isSidechain?: boolean;
   parentMessageId?: string;
   message?: {
     id?: string;
@@ -51,6 +52,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
 
   let sessionId: string | null = null;
   let cwd: string | null = null;
+  let isSubagent = false;
   const messages: ParsedMessage[] = [];
 
   // Derive project from directory structure: ~/.claude/projects/{project-path-encoded}/
@@ -74,6 +76,9 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
       console.warn(`Malformed JSONL line in ${filePath}`);
       continue;
     }
+
+    // isSidechain is on the first line (no type field) or any line
+    if (parsed.isSidechain === true) isSubagent = true;
 
     // Summary / metadata line
     if (parsed.type === "summary") {
@@ -176,6 +181,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
     started_at: startedAt,
     ended_at: endedAt,
     source_file: filePath,
+    is_subagent: isSubagent,
     messages,
   };
 }

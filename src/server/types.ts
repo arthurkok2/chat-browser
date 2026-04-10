@@ -10,6 +10,7 @@ export interface Session {
   source_file: string;
   file_mtime: number | null;
   file_size: number | null;
+  is_subagent: number; // 0 or 1
 }
 
 export interface Message {
@@ -42,6 +43,7 @@ export interface ParsedSession {
   started_at: number | null;
   ended_at: number | null;
   source_file: string;
+  is_subagent: boolean;
   messages: ParsedMessage[];
 }
 

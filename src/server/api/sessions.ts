@@ -17,6 +17,7 @@ sessionsRouter.get("/", (req: Request, res: Response) => {
   const order = (req.query.order as string) === "asc" ? "ASC" : "DESC";
   const limit = req.query.limit ? Number(req.query.limit) : 50;
   const offset = req.query.offset ? Number(req.query.offset) : 0;
+  const includeSubagents = req.query.include_subagents === "true";
 
   const conditions: string[] = [];
   const bindings: Record<string, string | number | null> = {};
@@ -40,6 +41,9 @@ sessionsRouter.get("/", (req: Request, res: Response) => {
   if (before != null) {
     conditions.push("s.started_at <= @before");
     bindings.before = before;
+  }
+  if (!includeSubagents) {
+    conditions.push("s.is_subagent = 0");
   }
 
   const whereClause =

@@ -189,6 +189,7 @@ export function parseCodexSession(filePath: string): ParsedSession | null {
     started_at: startedAt,
     ended_at: endedAt,
     source_file: filePath,
+    is_subagent: false,
     messages,
   };
 }

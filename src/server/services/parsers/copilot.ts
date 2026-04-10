@@ -184,6 +184,7 @@ export function parseCopilotSession(dirPath: string): ParsedSession | null {
     started_at: startedAt,
     ended_at: endedAt,
     source_file: eventsFile,
+    is_subagent: false,
     messages,
   };
 }

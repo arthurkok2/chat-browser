@@ -10,6 +10,7 @@ interface Session {
   ended_at: number | null;
   message_count: number;
   source_file: string;
+  is_subagent: number;
 }
 
 interface Message {
@@ -43,6 +44,7 @@ interface SessionsParams {
   order?: string;
   limit?: number;
   offset?: number;
+  include_subagents?: boolean;
 }
 
 interface SessionsState {
@@ -87,7 +89,7 @@ export function useSessions(params: SessionsParams): SessionsState {
       });
 
     return () => controller.abort();
-  }, [params.tool, params.project, params.branch, params.after, params.before, params.sort, params.order, params.limit, params.offset]);
+  }, [params.tool, params.project, params.branch, params.after, params.before, params.sort, params.order, params.limit, params.offset, params.include_subagents]);
 
   return state;
 }
