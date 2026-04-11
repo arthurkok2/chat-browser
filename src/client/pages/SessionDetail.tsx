@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSession } from "../hooks/useSessions";
 import ToolBadge from "../components/ToolBadge";
 import MessageBubble from "../components/MessageBubble";
@@ -25,17 +25,22 @@ const TYPE_STYLES: Record<string, string> = {
   thinking:    "bg-amber-900/30 text-amber-300 border-amber-700/50",
 };
 
-function GroupSummary({ item, toolUsesByMessage }: {
+function GroupSummary({ item, toolUsesByMessage, globalExpanded }: {
   item: Extract<RenderItem, { kind: "group" }>;
   toolUsesByMessage: Map<number, unknown[]>;
+  globalExpanded: boolean | null; // null = untouched, true/false = forced
 }) {
   const [expanded, setExpanded] = useState(false);
+
+  // Sync to global expand/collapse when triggered
+  useEffect(() => {
+    if (globalExpanded !== null) setExpanded(globalExpanded);
+  }, [globalExpanded]);
 
   const parts = Object.entries(item.counts).map(([type, count]) => ({ type, count }));
 
   return (
     <div className="my-1">
-      {/* Summary bar */}
       <button
         onClick={() => setExpanded((v) => !v)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 transition-colors w-full text-left"
@@ -58,7 +63,6 @@ function GroupSummary({ item, toolUsesByMessage }: {
         </div>
       </button>
 
-      {/* Expanded individual messages */}
       {expanded && (
         <div className="mt-1 pl-4 space-y-1 border-l-2 border-slate-700">
           {item.messages.map((msg) => (
@@ -81,6 +85,14 @@ export default function SessionDetail() {
   const { id } = useParams<{ id: string }>();
   const { session, messages, tool_uses, loading } = useSession(id);
 
+  // null = groups manage their own state; true/false = forced by the button
+  const [globalExpanded, setGlobalExpanded] = useState<boolean | null>(null);
+
+  const groupCount = useMemo(
+    () => messages.filter((m) => m.type !== "text").length,
+    [messages]
+  );
+
   const toolUsesByMessage = useMemo(() => {
     const map = new Map<number, typeof tool_uses>();
     tool_uses.forEach((tu) => {
@@ -91,7 +103,6 @@ export default function SessionDetail() {
     return map;
   }, [tool_uses]);
 
-  // Group consecutive non-text messages between text messages
   const renderItems = useMemo((): RenderItem[] => {
     const visible = messages.filter(
       (m) => m.content !== null || (toolUsesByMessage.get(m.id)?.length ?? 0) > 0
@@ -190,6 +201,14 @@ export default function SessionDetail() {
           </div>
 
           <div className="flex items-center gap-2">
+            {groupCount > 0 && (
+              <button
+                onClick={() => setGlobalExpanded((v) => v === true ? false : true)}
+                className="px-3 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors"
+              >
+                {globalExpanded === true ? "Collapse all" : "Expand all"}
+              </button>
+            )}
             <button
               onClick={() => handleExport("md")}
               className="px-3 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors"
@@ -219,7 +238,12 @@ export default function SessionDetail() {
               toolUses={toolUsesByMessage.get(item.msg.id)}
             />
           ) : (
-            <GroupSummary key={i} item={item} toolUsesByMessage={toolUsesByMessage} />
+            <GroupSummary
+              key={i}
+              item={item}
+              toolUsesByMessage={toolUsesByMessage}
+              globalExpanded={globalExpanded}
+            />
           )
         )}
       </div>
