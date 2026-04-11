@@ -73,6 +73,7 @@ function GroupSummary({ item, toolUsesByMessage, globalExpanded }: {
               content={msg.content}
               timestamp={msg.timestamp}
               toolUses={(toolUsesByMessage.get(msg.id) as Parameters<typeof MessageBubble>[0]["toolUses"])}
+              globalExpanded={globalExpanded}
             />
           ))}
         </div>
@@ -236,6 +237,7 @@ export default function SessionDetail() {
               content={item.msg.content}
               timestamp={item.msg.timestamp}
               toolUses={toolUsesByMessage.get(item.msg.id)}
+              globalExpanded={globalExpanded}
             />
           ) : (
             <GroupSummary

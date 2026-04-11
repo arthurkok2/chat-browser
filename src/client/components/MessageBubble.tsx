@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatTimestamp } from "../utils/time";
 import ToolCallItem from "./ToolCallItem";
 
@@ -16,6 +16,7 @@ interface MessageBubbleProps {
   content: string | null;
   timestamp: number | null;
   toolUses?: ToolUse[];
+  globalExpanded?: boolean | null;
 }
 
 const TYPE_STYLES: Record<string, string> = {
@@ -32,9 +33,13 @@ const TYPE_LABELS: Record<string, string> = {
   thinking:    "thinking",
 };
 
-export default function MessageBubble({ role, type = "text", content, timestamp, toolUses }: MessageBubbleProps) {
+export default function MessageBubble({ role, type = "text", content, timestamp, toolUses, globalExpanded = null }: MessageBubbleProps) {
   const collapsible = type !== "text";
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (collapsible && globalExpanded !== null) setExpanded(globalExpanded);
+  }, [globalExpanded, collapsible]);
 
   const isThinking = type === "thinking";
   const typeStyle = TYPE_STYLES[type] ?? TYPE_STYLES.text;
