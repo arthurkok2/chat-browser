@@ -93,7 +93,7 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
     // sessionId, cwd, gitBranch and isSidechain are on every entry — grab on first occurrence
     if (!sessionId && parsed.sessionId) sessionId = parsed.sessionId;
     if (!cwd && parsed.cwd) cwd = parsed.cwd;
-    if (!gitBranch && parsed.gitBranch) gitBranch = parsed.gitBranch;
+    if (!gitBranch && parsed.gitBranch && parsed.gitBranch !== "HEAD") gitBranch = parsed.gitBranch;
     if (parsed.isSidechain === true) isSubagent = true;
 
     // Only "user" and "assistant" entries carry a message
