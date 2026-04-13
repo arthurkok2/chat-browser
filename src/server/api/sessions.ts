@@ -13,7 +13,8 @@ sessionsRouter.get("/", (req: Request, res: Response) => {
   const branch = req.query.branch as string | undefined;
   const after = req.query.after ? Number(req.query.after) : undefined;
   const before = req.query.before ? Number(req.query.before) : undefined;
-  const sort = (req.query.sort as string) === "message_count" ? "message_count" : "started_at";
+  const sortParam = req.query.sort as string;
+  const sort = sortParam === "message_count" ? "message_count" : sortParam === "started_at" ? "started_at" : "ended_at";
   const order = (req.query.order as string) === "asc" ? "ASC" : "DESC";
   const limit = req.query.limit ? Number(req.query.limit) : 50;
   const offset = req.query.offset ? Number(req.query.offset) : 0;

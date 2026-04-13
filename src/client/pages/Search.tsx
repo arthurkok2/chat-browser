@@ -45,7 +45,7 @@ export default function Search() {
   const sessionsParams = useMemo(
     () => ({
       tool, project, branch, after, before,
-      sort: "started_at", order: "desc" as const,
+      sort: "ended_at", order: "desc" as const,
       limit, offset,
       include_subagents: includeSubagents,
     }),
