@@ -17,8 +17,8 @@ exportRouter.get("/", (req: Request, res: Response) => {
   const sessionId = req.query.session_id as string | undefined;
   const type = (req.query.type as string) || "sessions";
 
-  if (!["md", "json", "csv"].includes(format)) {
-    res.status(400).json({ error: "Invalid format. Use md, json, or csv." });
+  if (!["md", "json", "csv", "html"].includes(format)) {
+    res.status(400).json({ error: "Invalid format. Use md, json, csv, or html." });
     return;
   }
 

@@ -133,7 +133,7 @@ export default function SessionDetail() {
     return items;
   }, [messages, toolUsesByMessage]);
 
-  const handleExport = (format: "md" | "json") => {
+  const handleExport = (format: "md" | "json" | "html") => {
     window.open(`/api/export?session_id=${id}&format=${format}&type=sessions`, "_blank");
   };
 
@@ -210,6 +210,12 @@ export default function SessionDetail() {
                 {globalExpanded === true ? "Collapse all" : "Expand all"}
               </button>
             )}
+            <button
+              onClick={() => handleExport("html")}
+              className="px-3 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors"
+            >
+              Export HTML
+            </button>
             <button
               onClick={() => handleExport("md")}
               className="px-3 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors"
