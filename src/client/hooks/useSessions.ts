@@ -92,6 +92,7 @@ export function useSessions(params: SessionsParams): SessionsState {
     return () => controller.abort();
   }, [params.tool, params.project, params.branch, params.after, params.before, params.sort, params.order, params.limit, params.offset, params.include_subagents]);
 
+
   return state;
 }
 

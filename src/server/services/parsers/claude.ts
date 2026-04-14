@@ -202,8 +202,12 @@ export function parseClaudeSession(filePath: string): ParsedSession | null {
 
   if (messages.length === 0) return null;
 
-  // Fallback: derive sessionId from filename if not found in entries
-  if (!sessionId) {
+  // Subagent files store the PARENT session's sessionId — not their own.
+  // Always derive the ID from the filename for subagents so they don't
+  // collide with (and overwrite) the parent session in the DB.
+  if (isSubagent) {
+    sessionId = path.basename(filePath, path.extname(filePath));
+  } else if (!sessionId) {
     sessionId = path.basename(filePath, path.extname(filePath));
   }
 

@@ -9,10 +9,9 @@ interface FilterBarProps {
   onAfterChange: (value: string) => void;
   before: string;
   onBeforeChange: (value: string) => void;
-  role: string;
-  onRoleChange: (value: string) => void;
   includeSubagents: boolean;
   onIncludeSubagentsChange: (value: boolean) => void;
+  onClearAll: () => void;
   projects?: string[];
   branches?: string[];
 }
@@ -79,13 +78,14 @@ export default function FilterBar({
   onAfterChange,
   before,
   onBeforeChange,
-  role,
-  onRoleChange,
   includeSubagents,
   onIncludeSubagentsChange,
+  onClearAll,
   projects = [],
   branches = [],
 }: FilterBarProps) {
+  const hasFilters = !!(tool || project || branch || after || before || includeSubagents);
+
   return (
     <div className="flex flex-wrap items-end gap-3">
       <SelectField
@@ -123,17 +123,6 @@ export default function FilterBar({
       <DateField label="After" value={after} onChange={onAfterChange} />
       <DateField label="Before" value={before} onChange={onBeforeChange} />
 
-      <SelectField
-        label="Role"
-        value={role}
-        onChange={onRoleChange}
-        options={[
-          { value: "", label: "All Roles" },
-          { value: "user", label: "User" },
-          { value: "assistant", label: "Assistant" },
-        ]}
-      />
-
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-slate-400">Subagents</label>
         <button
@@ -144,21 +133,13 @@ export default function FilterBar({
               : "bg-slate-800 border-slate-600 text-slate-400 hover:text-slate-200"
           }`}
         >
-          <span>{includeSubagents ? "Included" : "Excluded"}</span>
+          {includeSubagents ? "Included" : "Excluded"}
         </button>
       </div>
 
-      {(tool || project || branch || after || before || role || includeSubagents) && (
+      {hasFilters && (
         <button
-          onClick={() => {
-            onToolChange("");
-            onProjectChange("");
-            onBranchChange("");
-            onAfterChange("");
-            onBeforeChange("");
-            onRoleChange("");
-            onIncludeSubagentsChange(false);
-          }}
+          onClick={onClearAll}
           className="text-xs text-slate-400 hover:text-slate-200 underline pb-1.5"
         >
           Clear all

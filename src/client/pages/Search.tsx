@@ -9,22 +9,21 @@ import { useSessions } from "../hooks/useSessions";
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const query           = searchParams.get("q") ?? "";
-  const tool            = searchParams.get("tool") ?? "";
-  const project         = searchParams.get("project") ?? "";
-  const branch          = searchParams.get("branch") ?? "";
-  const after           = searchParams.get("after") ?? "";
-  const before          = searchParams.get("before") ?? "";
-  const role            = searchParams.get("role") ?? "";
+  const query          = searchParams.get("q") ?? "";
+  const tool           = searchParams.get("tool") ?? "";
+  const project        = searchParams.get("project") ?? "";
+  const branch         = searchParams.get("branch") ?? "";
+  const after          = searchParams.get("after") ?? "";
+  const before         = searchParams.get("before") ?? "";
   const includeSubagents = searchParams.get("subagents") === "1";
-  const offset          = Number(searchParams.get("offset") ?? "0");
-  const limit           = 20;
+  const offset         = Number(searchParams.get("offset") ?? "0");
+  const limit          = 20;
 
   function set(updates: Record<string, string | null>, resetOffset = true) {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       for (const [k, v] of Object.entries(updates)) {
-        if (v === null || v === "" || v === "0" || (k === "subagents" && v === "0")) {
+        if (v === null || v === "") {
           next.delete(k);
         } else {
           next.set(k, v);
@@ -35,11 +34,15 @@ export default function Search() {
     }, { replace: true });
   }
 
+  function clearAll() {
+    set({ tool: null, project: null, branch: null, after: null, before: null, subagents: null, q: null });
+  }
+
   const isSearching = !!query.trim();
 
   const searchApiParams = useMemo(
-    () => ({ q: query, tool, project, branch, after, before, role, limit, offset }),
-    [query, tool, project, branch, after, before, role, offset]
+    () => ({ q: query, tool, project, branch, after, before, limit, offset }),
+    [query, tool, project, branch, after, before, offset]
   );
 
   const sessionsParams = useMemo(
@@ -75,8 +78,8 @@ export default function Search() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const totalPages   = Math.ceil(total / limit);
-  const currentPage  = Math.floor(offset / limit) + 1;
+  const totalPages  = Math.ceil(total / limit);
+  const currentPage = Math.floor(offset / limit) + 1;
 
   return (
     <div className="space-y-4">
@@ -93,10 +96,9 @@ export default function Search() {
         onAfterChange={(v) => set({ after: v })}
         before={before}
         onBeforeChange={(v) => set({ before: v })}
-        role={role}
-        onRoleChange={(v) => set({ role: v })}
         includeSubagents={includeSubagents}
         onIncludeSubagentsChange={(v) => set({ subagents: v ? "1" : null })}
+        onClearAll={clearAll}
         projects={projectList}
         branches={branchList}
       />
