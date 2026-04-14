@@ -6,3 +6,4 @@ lib/
 *.db-wal
 *.db-shm
 session_debug.json
+.superpowers/
