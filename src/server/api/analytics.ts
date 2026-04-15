@@ -8,10 +8,14 @@ export const analyticsRouter = Router();
 analyticsRouter.get("/", (req: Request, res: Response) => {
   const db = getDb();
 
-  const result = getAnalytics(db, {
-    after: req.query.after ? Number(req.query.after) : undefined,
-    before: req.query.before ? Number(req.query.before) : undefined,
-  });
+  const periodParam = req.query.period as string;
+  const period =
+    periodParam === "7d" || periodParam === "30d" || periodParam === "90d" || periodParam === "all"
+      ? periodParam
+      : "30d";
 
+  const project = req.query.project as string | undefined;
+
+  const result = getAnalytics(db, { period, project });
   res.json(result);
 });
