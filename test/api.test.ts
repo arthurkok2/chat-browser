@@ -271,3 +271,53 @@ describe("exportAnalytics", () => {
     expect(result.content).toContain("tool_breakdown,claude,1");
   });
 });
+
+describe("getAnalytics (new)", () => {
+  const NOW = 1744000000000; // fixed "now" for deterministic tests
+
+  it("pulse: sessions_this counts sessions in period", () => {
+    insertSession("s1", "claude", "P", null, NOW - 1 * 86400_000, 5, NOW - 1 * 86400_000 + 300_000);
+    insertSession("s2", "claude", "P", null, NOW - 3 * 86400_000, 3, NOW - 3 * 86400_000 + 120_000);
+    insertSession("s3", "copilot", "P", null, NOW - 6 * 86400_000, 2, NOW - 6 * 86400_000 + 60_000);
+    insertSession("s4", "claude", "P", null, NOW - 10 * 86400_000, 1, NOW - 10 * 86400_000 + 30_000);
+
+    const result = getAnalytics(db, { period: "7d", now: NOW });
+    expect(result.pulse.sessions_this).toBe(3);
+    expect(result.pulse.sessions_prev).toBe(1); // s4 falls in prev 7d window
+  });
+
+  it("pulse: hours_this sums session durations", () => {
+    insertSession("s1", "claude", "P", null, NOW - 1 * 86400_000, 5, NOW - 1 * 86400_000 + 3_600_000);
+    const result = getAnalytics(db, { period: "7d", now: NOW });
+    expect(result.pulse.hours_this).toBeCloseTo(1, 1);
+  });
+
+  it("breakdown: decodes project names", () => {
+    insertSession("s1", "claude", "C--Dayforce-tip", null, NOW - 1 * 86400_000, 3, NOW - 1 * 86400_000 + 60_000);
+    const result = getAnalytics(db, { period: "7d", now: NOW });
+    expect(result.breakdown.projects[0].decoded).toBe("Dayforce/tip");
+  });
+
+  it("behavior: autonomy_pct is ratio of tool messages", () => {
+    insertSession("s1", "claude", "P", null, NOW - 1 * 86400_000, 6, NOW - 1 * 86400_000 + 60_000);
+    insertMessage("s1", "user", "hello", "text");
+    insertMessage("s1", "assistant", "thinking", "text");
+    insertMessage("s1", "assistant", "", "tool_use");
+    insertMessage("s1", "user", "", "tool_result");
+    insertMessage("s1", "assistant", "", "tool_use");
+    insertMessage("s1", "user", "", "tool_result");
+
+    const result = getAnalytics(db, { period: "7d", now: NOW });
+    expect(result.behavior.avg_autonomy_pct).toBeCloseTo(66.67, 0);
+  });
+
+  it("temporal: by_hour has 24 entries", () => {
+    const result = getAnalytics(db, { period: "7d", now: NOW });
+    expect(result.temporal.by_hour).toHaveLength(24);
+  });
+
+  it("temporal: heatmap has 364 entries (52 weeks)", () => {
+    const result = getAnalytics(db, { period: "7d", now: NOW });
+    expect(result.temporal.heatmap).toHaveLength(364);
+  });
+});
