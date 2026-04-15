@@ -106,6 +106,7 @@ export function searchMessages(
       source_file: row.source_file,
       file_mtime: row.file_mtime,
       file_size: row.file_size,
+      is_subagent: row.is_subagent,
     },
     message_id: row.message_id,
     snippet: row.snippet,

@@ -385,6 +385,13 @@ export function exportSessions(
       content = [header, ...rows].join("\n");
       break;
     }
+    case "html":
+      // Multi-session HTML export not supported; callers should use exportSession per session
+      content = sessions.map((s) => {
+        const data = getSessionWithMessages(db, s.id);
+        return data ? sessionToHtml(data.session, data.messages, data.toolUses) : "";
+      }).join("\n");
+      break;
   }
 
   return {

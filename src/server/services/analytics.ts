@@ -40,12 +40,12 @@ export function getAnalytics(db: DatabaseSync, params: AnalyticsParams): Analyti
   const sessionsThis = (db.prepare(
     `SELECT id, started_at, ended_at FROM sessions s
      WHERE s.is_subagent = 0 AND s.ended_at >= ? ${projectFilter}`
-  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as unknown[])) as { id: string; started_at: number; ended_at: number }[]);
+  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as (string | number)[])) as { id: string; started_at: number; ended_at: number }[]);
 
   const sessionsPrev = days === -1 ? [] : (db.prepare(
     `SELECT id, started_at, ended_at FROM sessions s
      WHERE s.is_subagent = 0 AND s.ended_at >= ? AND s.ended_at < ? ${projectFilter}`
-  ).all(...([prevStart, prevEnd, ...(projectArg ? [projectArg] : [])] as unknown[])) as { id: string; started_at: number; ended_at: number }[]);
+  ).all(...([prevStart, prevEnd, ...(projectArg ? [projectArg] : [])] as (string | number)[])) as { id: string; started_at: number; ended_at: number }[]);
 
   const hoursThis = sessionsThis.reduce((sum, s) => {
     if (s.ended_at && s.started_at) return sum + (s.ended_at - s.started_at);
@@ -64,13 +64,13 @@ export function getAnalytics(db: DatabaseSync, params: AnalyticsParams): Analyti
     `SELECT date(s.ended_at / 1000, 'unixepoch') AS date, COUNT(*) AS count
      FROM sessions s WHERE s.is_subagent = 0 AND s.ended_at >= ? ${projectFilter}
      GROUP BY date ORDER BY date`
-  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as unknown[])) as { date: string; count: number }[]);
+  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as (string | number)[])) as { date: string; count: number }[]);
 
   const dailyPrevRows = days === -1 ? [] : (db.prepare(
     `SELECT date(s.ended_at / 1000, 'unixepoch') AS date, COUNT(*) AS count
      FROM sessions s WHERE s.is_subagent = 0 AND s.ended_at >= ? AND s.ended_at < ? ${projectFilter}
      GROUP BY date ORDER BY date`
-  ).all(...([prevStart, prevEnd, ...(projectArg ? [projectArg] : [])] as unknown[])) as { date: string; count: number }[]);
+  ).all(...([prevStart, prevEnd, ...(projectArg ? [projectArg] : [])] as (string | number)[])) as { date: string; count: number }[]);
 
   const dowCounts = (db.prepare(
     `SELECT strftime('%w', ended_at / 1000, 'unixepoch') AS dow, COUNT(*) AS count
@@ -87,20 +87,20 @@ export function getAnalytics(db: DatabaseSync, params: AnalyticsParams): Analyti
      FROM sessions s
      WHERE s.is_subagent = 0 AND s.project IS NOT NULL AND s.ended_at >= ? ${projectFilter}
      GROUP BY s.project ORDER BY sessions DESC LIMIT 10`
-  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as unknown[])) as { project: string; sessions: number; duration_ms: number }[]);
+  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as (string | number)[])) as { project: string; sessions: number; duration_ms: number }[]);
 
   const branchRows = (db.prepare(
     `SELECT s.git_branch AS branch, COUNT(*) AS sessions
      FROM sessions s
      WHERE s.is_subagent = 0 AND s.git_branch IS NOT NULL AND s.ended_at >= ? ${projectFilter}
      GROUP BY s.git_branch ORDER BY sessions DESC LIMIT 10`
-  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as unknown[])) as { branch: string; sessions: number }[]);
+  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as (string | number)[])) as { branch: string; sessions: number }[]);
 
   const toolSplitRows = (db.prepare(
     `SELECT s.tool, COUNT(*) AS sessions
      FROM sessions s WHERE s.is_subagent = 0 AND s.ended_at >= ? ${projectFilter}
      GROUP BY s.tool ORDER BY sessions DESC`
-  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as unknown[])) as { tool: string; sessions: number }[]);
+  ).all(...([thisStart, ...(projectArg ? [projectArg] : [])] as (string | number)[])) as { tool: string; sessions: number }[]);
 
   // ── Behavior ──────────────────────────────────────────────────────────────
 
