@@ -1,5 +1,5 @@
+import { DatabaseSync } from "node:sqlite";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import Database from "better-sqlite3";
 import { createSchema } from "../src/server/db/schema.js";
 import { getAnalytics } from "../src/server/services/analytics.js";
 import {
@@ -8,7 +8,7 @@ import {
   exportAnalytics,
 } from "../src/server/services/export.js";
 
-let db: Database.Database;
+let db: DatabaseSync;
 
 function insertSession(
   id: string,
@@ -17,21 +17,22 @@ function insertSession(
   branch: string | null,
   startedAt: number | null,
   messageCount: number,
+  endedAt?: number | null,
 ) {
   db.prepare(
-    `INSERT INTO sessions (id, tool, project, cwd, git_branch, started_at, ended_at, message_count, source_file)
-     VALUES (@id, @tool, @project, @cwd, @branch, @startedAt, @endedAt, @messageCount, @sourceFile)`,
-  ).run({
+    `INSERT INTO sessions (id, tool, project, cwd, git_branch, started_at, ended_at, message_count, source_file, is_subagent)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+  ).run(
     id,
     tool,
     project,
-    cwd: "/test",
+    "/test",
     branch,
     startedAt,
-    endedAt: startedAt ? startedAt + 60000 : null,
+    endedAt ?? (startedAt ? startedAt + 60000 : null),
     messageCount,
-    sourceFile: `/test/${id}.jsonl`,
-  });
+    `/test/${id}.jsonl`,
+  );
 }
 
 function insertMessage(
@@ -44,14 +45,8 @@ function insertMessage(
   const estimate = tokenEstimate ?? Math.ceil(content.length / 4);
   db.prepare(
     `INSERT INTO messages (session_id, role, content, type, token_estimate)
-     VALUES (@sessionId, @role, @content, @type, @tokenEstimate)`,
-  ).run({
-    sessionId,
-    role,
-    content,
-    type,
-    tokenEstimate: estimate,
-  });
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(sessionId, role, content, type, estimate);
 }
 
 function insertToolUse(
@@ -62,14 +57,14 @@ function insertToolUse(
 ) {
   db.prepare(
     `INSERT INTO tool_uses (message_id, session_id, tool_name, file_path)
-     VALUES (@messageId, @sessionId, @toolName, @filePath)`,
-  ).run({ messageId, sessionId, toolName, filePath });
+     VALUES (?, ?, ?, ?)`,
+  ).run(messageId, sessionId, toolName, filePath);
 }
 
 beforeEach(() => {
-  db = new Database(":memory:");
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+  db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA foreign_keys = ON");
   createSchema(db);
 });
 
@@ -139,7 +134,7 @@ describe("getAnalytics", () => {
     insertMessage("s1", "assistant", "reading file");
     // Get the message id
     const msgId = (
-      db.prepare("SELECT id FROM messages LIMIT 1").get() as { id: number }
+      db.prepare("SELECT id FROM messages LIMIT 1").get() as unknown as { id: number }
     ).id;
     insertToolUse(msgId, "s1", "Read", "/test/file.ts");
     insertToolUse(msgId, "s1", "Read", "/test/other.ts");
@@ -223,7 +218,7 @@ describe("exportSession", () => {
     insertSession("s1", "claude", null, null, 1700000000000, 1);
     insertMessage("s1", "assistant", "Reading the file");
     const msgId = (
-      db.prepare("SELECT id FROM messages LIMIT 1").get() as { id: number }
+      db.prepare("SELECT id FROM messages LIMIT 1").get() as unknown as { id: number }
     ).id;
     insertToolUse(msgId, "s1", "Read", "/src/index.ts");
 
