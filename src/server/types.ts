@@ -76,16 +76,34 @@ export interface SearchResult {
 }
 
 export interface AnalyticsData {
-  summary: {
-    total_sessions: number;
-    total_messages: number;
-    estimated_tokens: number;
-    project_count: number;
+  pulse: {
+    period_days: number;                              // 7, 30, 90, or -1 for all
+    sessions_this: number;
+    sessions_prev: number;
+    avg_per_day_this: number;
+    avg_per_day_prev: number;
+    hours_this: number;
+    hours_prev: number;
+    most_active_dow: string;                          // e.g. "Monday"
+    daily_counts: { date: string; count: number }[];  // this period
+    daily_counts_prev: { date: string; count: number }[]; // previous period
   };
-  sessions_over_time: { date: string; count: number }[];
-  tool_breakdown: { tool: string; count: number }[];
-  project_breakdown: { project: string; count: number }[];
-  tool_usage: { tool_name: string; count: number }[];
-  conversation_lengths: { bucket: string; count: number }[];
-  branch_breakdown: { branch: string; count: number }[];
+  breakdown: {
+    projects: { project: string; decoded: string; sessions: number; hours: number }[];
+    branches: { branch: string; sessions: number }[];
+    tool_split: { tool: string; sessions: number }[];
+  };
+  behavior: {
+    avg_duration_ms: number;
+    avg_autonomy_pct: number;
+    avg_depth: number;
+    duration_hist: { bucket: string; count: number }[];
+    autonomy_hist: { bucket: string; count: number }[];
+    depth_hist: { bucket: string; count: number }[];
+  };
+  temporal: {
+    by_hour: { hour: number; count: number; dominant_tool: string }[];
+    by_dow: { dow: number; label: string; count: number }[];
+    heatmap: { date: string; count: number }[];       // always last 52 weeks
+  };
 }
