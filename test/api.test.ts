@@ -265,10 +265,9 @@ describe("exportAnalytics", () => {
 
     const result = exportAnalytics(db, {});
     expect(result.contentType).toBe("text/csv");
-    expect(result.content).toContain("summary,total_sessions,1");
-    expect(result.content).toContain("summary,total_messages,2");
-    expect(result.content).toContain("summary,estimated_tokens,7");
-    expect(result.content).toContain("tool_breakdown,claude,1");
+    expect(result.content).toContain("section,key,value");
+    expect(result.content).toContain("pulse,sessions_this,");
+    expect(result.content).toContain("tool_split,claude,1");
   });
 });
 

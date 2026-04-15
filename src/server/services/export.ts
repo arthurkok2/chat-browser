@@ -398,47 +398,36 @@ export function exportAnalytics(
   db: DatabaseSync,
   params: { after?: number; before?: number },
 ): ExportResult {
-  const analytics = getAnalytics(db, params);
+  const analytics = getAnalytics(db, { period: "all" });
+  const lines: string[] = [];
   const timestamp = new Date().toISOString().slice(0, 10);
 
-  const lines: string[] = [];
-
-  // Summary
+  // Pulse summary
   lines.push("section,key,value");
-  lines.push(`summary,total_sessions,${analytics.summary.total_sessions}`);
-  lines.push(`summary,total_messages,${analytics.summary.total_messages}`);
-  lines.push(`summary,estimated_tokens,${analytics.summary.estimated_tokens}`);
-  lines.push(`summary,project_count,${analytics.summary.project_count}`);
+  lines.push(`pulse,sessions_this,${analytics.pulse.sessions_this}`);
+  lines.push(`pulse,sessions_prev,${analytics.pulse.sessions_prev}`);
+  lines.push(`pulse,hours_this,${analytics.pulse.hours_this.toFixed(2)}`);
+  lines.push(`pulse,most_active_dow,${analytics.pulse.most_active_dow}`);
 
-  // Sessions over time
-  for (const row of analytics.sessions_over_time) {
-    lines.push(`sessions_over_time,${escapeCsv(row.date)},${row.count}`);
-  }
-
-  // Tool breakdown
-  for (const row of analytics.tool_breakdown) {
-    lines.push(`tool_breakdown,${escapeCsv(row.tool)},${row.count}`);
+  // Tool split
+  for (const row of analytics.breakdown.tool_split) {
+    lines.push(`tool_split,${escapeCsv(row.tool)},${row.sessions}`);
   }
 
   // Project breakdown
-  for (const row of analytics.project_breakdown) {
-    lines.push(`project_breakdown,${escapeCsv(row.project)},${row.count}`);
-  }
-
-  // Tool usage
-  for (const row of analytics.tool_usage) {
-    lines.push(`tool_usage,${escapeCsv(row.tool_name)},${row.count}`);
-  }
-
-  // Conversation lengths
-  for (const row of analytics.conversation_lengths) {
-    lines.push(`conversation_lengths,${escapeCsv(row.bucket)},${row.count}`);
+  for (const row of analytics.breakdown.projects) {
+    lines.push(`projects,${escapeCsv(row.decoded)},${row.sessions}`);
   }
 
   // Branch breakdown
-  for (const row of analytics.branch_breakdown) {
-    lines.push(`branch_breakdown,${escapeCsv(row.branch)},${row.count}`);
+  for (const row of analytics.breakdown.branches) {
+    lines.push(`branches,${escapeCsv(row.branch)},${row.sessions}`);
   }
+
+  // Behavior
+  lines.push(`behavior,avg_duration_ms,${Math.round(analytics.behavior.avg_duration_ms)}`);
+  lines.push(`behavior,avg_autonomy_pct,${analytics.behavior.avg_autonomy_pct.toFixed(1)}`);
+  lines.push(`behavior,avg_depth,${analytics.behavior.avg_depth.toFixed(1)}`);
 
   return {
     content: lines.join("\n"),
