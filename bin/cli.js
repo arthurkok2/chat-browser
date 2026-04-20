@@ -1,7 +1,7 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --experimental-sqlite --no-warnings
 
 import { Command } from "commander";
-import { startServer } from "../lib/server/index.js";
+import { startServer } from "../lib/index.js";
 
 const program = new Command();
 
@@ -14,7 +14,6 @@ program
   .option("--open", "Open browser on start", false)
   .option("--reindex", "Drop and rebuild the index on start", false)
   .option("--data-dir <path>", "Path to JSON config with custom data directories")
-  .option("--no-auto-detect", "Disable auto-detection of session directories")
   .action((opts) => {
     startServer({
       port: Number(opts.port),
