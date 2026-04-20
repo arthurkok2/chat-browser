@@ -1,4 +1,4 @@
-#!/usr/bin/env node --experimental-sqlite --no-warnings
+#!/usr/bin/env node
 
 import { Command } from "commander";
 import { startServer } from "../lib/index.js";

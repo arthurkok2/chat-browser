@@ -4,7 +4,7 @@
   "description": "Browse, search, and analyze CLI chat sessions from Claude Code, GitHub Copilot CLI, and OpenAI Codex CLI",
   "type": "module",
   "bin": {
-    "chat-browser": "./bin/cli.js"
+    "chat-browser": "./bin/chat-browser.js"
   },
   "scripts": {
     "dev:server": "tsx watch src/server/index.ts",
@@ -13,6 +13,7 @@
     "build:server": "tsc -p tsconfig.server.json",
     "build": "npm run build:client && npm run build:server",
     "prepublishOnly": "npm run build",
+    "start": "node --experimental-sqlite --no-warnings bin/cli.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
