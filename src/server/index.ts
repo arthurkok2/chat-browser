@@ -36,7 +36,7 @@ export function startServer(options: ServerOptions): void {
   app.use("/api/reindex", reindexRouter);
 
   // Serve static files from the built SPA
-  const distDir = path.resolve(__dirname, "..", "..", "dist");
+  const distDir = path.resolve(__dirname, "..", "dist");
   app.use(express.static(distDir));
 
   // SPA fallback: serve index.html for any non-API GET request
