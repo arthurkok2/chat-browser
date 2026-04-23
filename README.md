@@ -34,6 +34,8 @@ chat-browser indexes your local AI chat sessions into a SQLite database and serv
 ## Usage
 
 ```bash
+npm install
+npm build
 npx chat-browser
 ```
 
