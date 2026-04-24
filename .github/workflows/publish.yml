@@ -19,6 +19,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Debug npm config
+        run: |
+          npm config list
+          cat ~/.npmrc 2>/dev/null || echo "no ~/.npmrc"
+          cat .npmrc 2>/dev/null || echo "no .npmrc"
+
       - run: npm ci
       - run: npm run build
 
