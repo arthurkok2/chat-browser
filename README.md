@@ -29,13 +29,11 @@ chat-browser indexes your local AI chat sessions into a SQLite database and serv
 
 ## Requirements
 
-- Node.js 22+ (uses the built-in `node:sqlite` module)
+- Node.js 22+
 
 ## Usage
 
 ```bash
-npm install
-npm build
 npx chat-browser
 ```
 
