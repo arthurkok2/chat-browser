@@ -19,13 +19,13 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Debug npm config
-        run: |
-          npm config list
-          cat ~/.npmrc 2>/dev/null || echo "no ~/.npmrc"
-          cat .npmrc 2>/dev/null || echo "no .npmrc"
+      - name: Install dependencies
+        run: npm ci
+        continue-on-error: true
 
-      - run: npm ci
+      - name: Show npm error log
+        run: cat /home/runner/.npm/_logs/*.log 2>/dev/null | tail -50
+
       - run: npm run build
 
       - uses: actions/setup-node@v4
