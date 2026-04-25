@@ -1,6 +1,6 @@
 {
   "name": "chat-browser",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Browse, search, and analyze CLI chat sessions from Claude Code, GitHub Copilot CLI, and OpenAI Codex CLI",
   "homepage": "https://github.com/arthurkok2/chat-browser",
   "repository": {
