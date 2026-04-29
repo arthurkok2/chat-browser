@@ -30,12 +30,24 @@ export interface WatcherHandle {
 
 let watcherState: WatcherState = { status: "active", lastIndexedAt: null };
 
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 5_000;
+const MAX_DELAY_MS = 60_000;
+
+let retryCount = 0;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let activeWatcher: FSWatcher | null = null;
+let watchDb: DatabaseSync | null = null;
+let watchCustomDirs: Record<string, string[]> | undefined;
+
 export function getWatcherState(): WatcherState {
   return { ...watcherState };
 }
 
 export function resetWatcherState(): void {
   watcherState = { status: "active", lastIndexedAt: null };
+  retryCount = 0;
+  if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
 }
 
 /**
@@ -238,36 +250,32 @@ function parseAndIndex(db: DatabaseSync, filePath: string): void {
   }
 }
 
-/**
- * Start watching session directories for changes. Re-indexes on add/change.
- */
-export function startWatcher(
-  db: DatabaseSync,
-  customDirs?: Record<string, string[]>
-): FSWatcher {
-  const home = os.homedir();
+function scheduleRetry(): void {
+  if (retryCount >= MAX_RETRIES) {
+    watcherState.status = "dead";
+    return;
+  }
+  const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount), MAX_DELAY_MS);
+  retryCount++;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    if (watchDb) spawnWatcher(watchDb, watchCustomDirs);
+  }, delay);
+}
 
+function spawnWatcher(db: DatabaseSync, customDirs?: Record<string, string[]>): void {
+  const home = os.homedir();
   const watchPaths: string[] = [
     path.join(home, ".claude", "projects"),
     path.join(home, ".copilot", "session-state"),
     path.join(home, ".codex", "sessions"),
     path.join(home, ".codex", "archived_sessions"),
   ];
-
-  // Add custom dirs
   if (customDirs) {
-    for (const dirs of Object.values(customDirs)) {
-      watchPaths.push(...dirs);
-    }
+    for (const dirs of Object.values(customDirs)) watchPaths.push(...dirs);
   }
-
-  // Filter to paths that exist
   const existingPaths = watchPaths.filter((p) => {
-    try {
-      return fs.existsSync(p);
-    } catch {
-      return false;
-    }
+    try { return fs.existsSync(p); } catch { return false; }
   });
 
   const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -280,26 +288,53 @@ export function startWatcher(
 
   const handleChange = (filePath: string) => {
     if (!filePath.endsWith(".jsonl")) return;
-
-    // Debounce per file
     const existing = debounceTimers.get(filePath);
     if (existing) clearTimeout(existing);
-
-    debounceTimers.set(
-      filePath,
-      setTimeout(() => {
-        debounceTimers.delete(filePath);
-        try {
-          parseAndIndex(db, filePath);
-        } catch (err) {
-          console.warn(`Error indexing ${filePath}:`, err);
-        }
-      }, 100)
-    );
+    debounceTimers.set(filePath, setTimeout(() => {
+      debounceTimers.delete(filePath);
+      try { parseAndIndex(db, filePath); } catch (err) {
+        console.warn(`Error indexing ${filePath}:`, err);
+      }
+    }, 100));
   };
 
   watcher.on("add", handleChange);
   watcher.on("change", handleChange);
+  watcher.on("error", (err) => {
+    console.warn("Watcher error, scheduling restart:", err);
+    watcher.close().catch(() => {});
+    activeWatcher = null;
+    watcherState.status = "recovering";
+    scheduleRetry();
+  });
+  watcher.on("ready", () => {
+    watcherState.status = "active";
+  });
 
-  return watcher;
+  activeWatcher = watcher;
+}
+
+export function simulateWatcherError(db: DatabaseSync): void {
+  watchDb = db;
+  watcherState.status = "recovering";
+  scheduleRetry();
+}
+
+/**
+ * Start watching session directories for changes. Re-indexes on add/change.
+ */
+export function startWatcher(
+  db: DatabaseSync,
+  customDirs?: Record<string, string[]>
+): WatcherHandle {
+  watchDb = db;
+  watchCustomDirs = customDirs;
+  spawnWatcher(db, customDirs);
+
+  return {
+    stop() {
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      if (activeWatcher) { activeWatcher.close().catch(() => {}); activeWatcher = null; }
+    },
+  };
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { createSchema } from "../src/server/db/schema.js";
 import { indexSession, getWatcherState, resetWatcherState } from "../src/server/services/indexer.js";
@@ -38,5 +38,27 @@ describe("WatcherState", () => {
     indexSession(db, parsed);
     const state = getWatcherState();
     expect(state.lastIndexedAt).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe("watcher restart", () => {
+  it("sets status to recovering when watcher errors", async () => {
+    const { simulateWatcherError } = await import("../src/server/services/indexer.js");
+    simulateWatcherError(db);
+    const state = getWatcherState();
+    expect(state.status).toBe("recovering");
+  });
+
+  it("sets status to dead after 5 failed retries", async () => {
+    vi.useFakeTimers();
+    const { simulateWatcherError } = await import("../src/server/services/indexer.js");
+    // Trigger error + exhaust all retries
+    for (let i = 0; i < 6; i++) {
+      simulateWatcherError(db);
+      await vi.runAllTimersAsync();
+    }
+    const state = getWatcherState();
+    expect(state.status).toBe("dead");
+    vi.useRealTimers();
   });
 });
