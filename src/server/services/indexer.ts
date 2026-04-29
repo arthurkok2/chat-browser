@@ -264,6 +264,10 @@ function scheduleRetry(): void {
 }
 
 function spawnWatcher(db: DatabaseSync, customDirs?: Record<string, string[]>): void {
+  if (watcherState.status === "recovering") {
+    watcherState.status = "active";
+  }
+
   const home = os.homedir();
   const watchPaths: string[] = [
     path.join(home, ".claude", "projects"),
@@ -306,9 +310,6 @@ function spawnWatcher(db: DatabaseSync, customDirs?: Record<string, string[]>): 
     activeWatcher = null;
     watcherState.status = "recovering";
     scheduleRetry();
-  });
-  watcher.on("ready", () => {
-    watcherState.status = "active";
   });
 
   activeWatcher = watcher;
