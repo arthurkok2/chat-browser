@@ -48,6 +48,9 @@ export function resetWatcherState(): void {
   watcherState = { status: "active", lastIndexedAt: null };
   retryCount = 0;
   if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+  if (activeWatcher) { activeWatcher.close().catch(() => {}); activeWatcher = null; }
+  watchDb = null;
+  watchCustomDirs = undefined;
 }
 
 /**
@@ -336,6 +339,7 @@ export function startWatcher(
     stop() {
       if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
       if (activeWatcher) { activeWatcher.close().catch(() => {}); activeWatcher = null; }
+      watchDb = null;
     },
   };
 }
