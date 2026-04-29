@@ -143,6 +143,7 @@ export function indexSession(
       }
     }
     db.exec("COMMIT");
+    watcherState.lastIndexedAt = Date.now();
   } catch (err) {
     db.exec("ROLLBACK");
     throw err;
