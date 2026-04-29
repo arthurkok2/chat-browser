@@ -32,8 +32,8 @@ export default function StatusFooter() {
         )}
         <span className="text-slate-600">·</span>
         <span className="flex items-center gap-1.5">
-          <span className={`inline-block w-2 h-2 rounded-full ${DOT[data.watcher] ?? DOT.active}`} />
-          {LABEL[data.watcher] ?? LABEL.active}
+          <span className={`inline-block w-2 h-2 rounded-full ${DOT[data.watcher] ?? "bg-slate-400"}`} />
+          {LABEL[data.watcher] ?? data.watcher}
         </span>
       </div>
     </footer>
