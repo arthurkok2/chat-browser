@@ -11,6 +11,7 @@ import { searchRouter } from "./api/search.js";
 import { analyticsRouter } from "./api/analytics.js";
 import { exportRouter } from "./api/export.js";
 import { reindexRouter } from "./api/reindex.js";
+import { statusRouter } from "./api/status.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,7 @@ export function startServer(options: ServerOptions): void {
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/export", exportRouter);
   app.use("/api/reindex", reindexRouter);
+  app.use("/api/status", statusRouter);
 
   // Serve static files from the built SPA
   const distDir = path.resolve(__dirname, "..", "dist");
@@ -69,7 +71,7 @@ export function startServer(options: ServerOptions): void {
   const { sessions, messages } = indexAllSessions(db, sources);
 
   // Start file watcher
-  startWatcher(db, customDirs);
+  const _watcherHandle = startWatcher(db, customDirs);
 
   // Start listening
   app.listen(port, () => {
