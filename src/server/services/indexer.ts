@@ -19,6 +19,25 @@ import {
  */
 const PARSER_VERSION = 9;
 
+export interface WatcherState {
+  status: "active" | "recovering" | "dead";
+  lastIndexedAt: number | null;
+}
+
+export interface WatcherHandle {
+  stop(): void;
+}
+
+let watcherState: WatcherState = { status: "active", lastIndexedAt: null };
+
+export function getWatcherState(): WatcherState {
+  return { ...watcherState };
+}
+
+export function resetWatcherState(): void {
+  watcherState = { status: "active", lastIndexedAt: null };
+}
+
 /**
  * Check whether a session file has changed since last index.
  */
