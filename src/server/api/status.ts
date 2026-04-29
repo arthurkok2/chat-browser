@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
 import { getDb } from "../db/connection.js";
 import { getWatcherState } from "../services/indexer.js";
 
