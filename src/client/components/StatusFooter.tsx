@@ -19,7 +19,7 @@ export default function StatusFooter() {
   if (!data) return null;
 
   return (
-    <footer className="border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-md">
+    <footer className="sticky bottom-0 z-50 border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-3 text-xs text-slate-400">
         <span>Indexed {data.sessions.toLocaleString()} sessions</span>
         <span className="text-slate-600">·</span>
