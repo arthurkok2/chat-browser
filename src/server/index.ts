@@ -71,7 +71,14 @@ export function startServer(options: ServerOptions): void {
   const { sessions, messages } = indexAllSessions(db, sources);
 
   // Start file watcher
-  const _watcherHandle = startWatcher(db, customDirs);
+  const watcherHandle = startWatcher(db, customDirs);
+
+  function shutdown() {
+    watcherHandle.stop();
+    process.exit(0);
+  }
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 
   // Start listening
   app.listen(port, () => {
